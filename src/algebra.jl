@@ -22,6 +22,9 @@ const Sum{T} = Node{Prod,T}
 
 Base.isone(x::Prod) = isempty(x.data)
 Base.iszero(x::Sum) = isempty(x.data)
+Base.one(::Union{Prod,Type{Prod}}) = Prod()
+Base.zero(::Union{Sum{T},Type{Sum{T}}}) where T = Sum{T}()
+Base.one(::Union{Sum{T},Type{Sum{T}}}) where T = Sum{T}(Prod() => one(T))
 
 function vars(n::Integer, sym::Symbol=:x)
 	[Sum(Prod(Symbol("$sym$i") => 1) => 1.0) for i in 1:n]
@@ -86,6 +89,23 @@ end
 (x::Sum \ y::Sum) = y*inv(x)
 (a::Number / x::Sum) = a*inv(x)
 (x::Sum \ a::Number) = a*inv(x)
+
+
+function factor(x::Sum{T}) where T
+	length(x) == 1 && return x
+	isempty(x) && return x
+	common = nothing
+	for (term, coeff) in x
+		if isnothing(common)
+			common = term
+		else
+			common = Prod(k => min(v, term[k]) for (k, v) in common)
+		end
+	end
+	isone(common) && return x
+	prod = common*Prod(Sum(k/common => v for (k, v) in x) => 1)
+	Sum(prod => one(T))
+end
 
 
 Base.show(io::IO, ::MIME"text/plain", x::Node) = print(io, summary(x), ":\n ", toexpr(x))

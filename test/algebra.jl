@@ -37,3 +37,14 @@ end
 	@ident (x + y)^6/(y + x)^8 == inv(x + z + y - z)^2
 
 end
+
+@testset "factor" begin
+
+	x, y, z = Sum.(Prod.([:x, :y, :z] .=> 1) .=> 1)
+
+	@test isone(factor(inv(x + y)*x + inv(x + y)*y))
+
+	@test factor(x*y + x*z) == Sum(Prod(:x => 1, y + z => 1) => 1)
+	@test factor(x*y + z^2) == Sum(Prod(:x => 1, :y => 1) => 1, Prod(:z => 2) => 1)
+
+end
