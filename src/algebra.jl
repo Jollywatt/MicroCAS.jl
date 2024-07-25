@@ -13,6 +13,8 @@ hash(x::Node, h::UInt) = hash(x.data, h)
 
 Base.getindex(x::Node{K,V}, k) where {K,V} = get(x.data, k, zero(V))
 Base.setindex!(x::Node, args...) = setindex!(x.data, args...)
+Base.length(x::Node) = length(x.data)
+Base.iterate(x::Node, args...) = iterate(x.data, args...)
 
 const Term = Node{Union{Symbol,Expr},Int}
 const Sum{T} = Node{Term,T}
@@ -27,24 +29,23 @@ end
 Sum(d::Dict{K,V}) where {K,V} = Sum{V}(d)
 
 
-
 #= Multiplication of terms =#
 
 (x::Term * y::Term) = Term(mergewith(+, x.data, y.data))
-inv(x::Term) = Term(k => -v for (k, v) in x.data)
+inv(x::Term) = Term(k => -v for (k, v) in x)
 (x::Term / y::Term) = x*inv(y)
 (x::Term \ y::Term) = y*inv(x)
-(x::Term ^ p::Integer) = Term(k => p*v for (k, v) in x.data)
+(x::Term ^ p::Integer) = Term(k => p*v for (k, v) in x)
 
 #= Addition and multiplication of sums =#
 
 (x::Sum + y::Sum) = Sum(mergewith(+, x.data, y.data))
--(x::Sum) = Sum(k => -v for (k, v) in x.data)
+-(x::Sum) = Sum(k => -v for (k, v) in x)
 (x::Sum - y::Sum) = x + (-y)
-(x::Sum * a::Number) = Sum(k => a*v for (k, v) in x.data)
-(a::Number * x::Sum) = Sum(k => a*v for (k, v) in x.data)
-(x::Sum / a::Number) = Sum(k => a/v for (k, v) in x.data)
-(a::Number \ x::Sum) = Sum(k => a\v for (k, v) in x.data)
+(x::Sum * a::Number) = Sum(k => a*v for (k, v) in x)
+(a::Number * x::Sum) = Sum(k => a*v for (k, v) in x)
+(x::Sum / a::Number) = Sum(k => a/v for (k, v) in x)
+(a::Number \ x::Sum) = Sum(k => a\v for (k, v) in x)
 for op in [:+, :-]
 	@eval $op(x::Sum, a::Number) = $op(x, Sum(Term() => a))
 	@eval $op(a::Number, x::Sum) = $op(x, Sum(Term() => a))
@@ -60,6 +61,28 @@ function distribute(x::Sum{T}, y::Sum{S}) where {T,S}
 end
 
 (x::Sum * y::Sum) = distribute(x, y)
+
+function (x::Sum ^ p::Integer)
+	if p < 0
+		inv(x)^abs(p)
+	elseif length(x) == 1
+		Sum(k^p => v^p for (k, v) in x)
+	else
+		error("cannot exponentiate $x by $p")
+	end
+end
+
+function inv(x::Sum)
+	if length(x) == 1
+		Sum(inv(k) => inv(v) for (k, v) in x)
+	else
+		error("cannot invert $x")
+	end
+end
+
+(x::Sum / y::Sum) = x*inv(y)
+(x::Sum \ y::Sum) = y*inv(x)
+
 
 Base.show(io::IO, ::MIME"text/plain", x::Node) = print(io, summary(x), ":\n ", toexpr(x))
 Base.show(io::IO, x::Node) = print(io, toexpr(x))
