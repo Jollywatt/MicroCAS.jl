@@ -17,7 +17,7 @@ Base.setindex!(x::Node, v, k) = iszero(v) ? delete!(x.data, k) : setindex!(x.dat
 Base.length(x::Node) = length(x.data)
 Base.iterate(x::Node, args...) = iterate(x.data, args...)
 
-const Term = Node{Union{Symbol,Expr},Int}
+const Term = Node{Union{Symbol,Expr,<:Node},Int}
 const Sum{T} = Node{Term,T}
 
 Base.isone(x::Term) = isempty(x.data)
@@ -47,6 +47,7 @@ inv(x::Term) = Term(k => -v for (k, v) in x)
 (a::Number * x::Sum) = Sum(k => a*v for (k, v) in x)
 (x::Sum / a::Number) = Sum(k => a/v for (k, v) in x)
 (a::Number \ x::Sum) = Sum(k => a\v for (k, v) in x)
+
 for op in [:+, :-]
 	@eval $op(x::Sum, a::Number) = $op(x, Sum(Term() => a))
 	@eval $op(a::Number, x::Sum) = $op(x, Sum(Term() => a))
@@ -69,7 +70,7 @@ function (x::Sum{T} ^ p::Integer) where T
 	elseif length(x) == 1
 		Sum(k^p => v^p for (k, v) in x)
 	else
-		Sum{T}(Term(toexpr(x) => p) => one(T))
+		Sum{T}(Term((x) => p) => one(T))
 	end
 end
 
@@ -77,12 +78,14 @@ function inv(x::Sum{T}) where T
 	if length(x) == 1
 		Sum(inv(k) => inv(v) for (k, v) in x)
 	else
-		Sum{T}(Term(toexpr(x) => -1) => one(T))
+		Sum{T}(Term((x) => -1) => one(T))
 	end
 end
 
 (x::Sum / y::Sum) = x*inv(y)
 (x::Sum \ y::Sum) = y*inv(x)
+(a::Number / x::Sum) = a*inv(x)
+(x::Sum \ a::Number) = a*inv(x)
 
 
 Base.show(io::IO, ::MIME"text/plain", x::Node) = print(io, summary(x), ":\n ", toexpr(x))
