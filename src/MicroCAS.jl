@@ -1,5 +1,9 @@
 module MicroCAS
 
-greet() = print("Hello World!")
+export vars
+export Node
+export Node, Term, Sum
+
+include("algebra.jl")
 
 end # module MicroCAS
