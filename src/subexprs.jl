@@ -2,12 +2,31 @@ struct SubexprPointer
 	x::UInt
 end
 
+"""
+	SubexprList{T} <: AbstractDict{SubexprPointer,T}
+
+Represents a directed acyclic graph of expressions as an ordered list of definitions.
+The last entry defines the full expression in terms of preceding subexpressions.
+Subexpressions are referenced with a `SubexprPointer`, which are the keys of the underlying `OrderedDict` and are pretty printed as Greek letters.
+
+See also [`subexprs`](@ref).
+
+# Examples
+```julia-repl
+julia> subexprs(:(A + f(A) + g(f(A))))
+MicroCAS.SubexprList{Any} with 3 entries:
+  α => :(f(A))
+  β => :(g(α))
+  γ => :(A + α + β)
+```
+"""
 struct SubexprList{T} <: AbstractDict{SubexprPointer,T}
 	defs::OrderedDict{SubexprPointer,T}
 	SubexprList(defs::OrderedDict) = new{valtype(defs)}(defs)
 end
 SubexprList() = SubexprList(OrderedDict{SubexprPointer,Any}())
 SubexprList(g::Base.Generator) = SubexprList(OrderedDict(g))
+SubexprList(defs) = SubexprList(OrderedDict(defs))
 
 Base.iterate(a::SubexprList, args...) = iterate(a.defs, args...)
 Base.length(a::SubexprList) = length(a.defs)
@@ -51,6 +70,27 @@ function subexprs!(l::SubexprList, expr::Expr)
 	ref
 end
 
+"""
+	subexprs(::Expr)::SubexprList
+
+Flatten an expression tree into a list of atomic expressions so that common subexpressions are identified.
+
+See also [`squash`](@ref).
+
+# Example
+```julia-repl
+julia> subexprs(:(A + f(A) + g(f(A))))
+MicroCAS.SubexprList{Any} with 3 entries:
+  α => :(f(A))
+  β => :(g(α))
+  γ => :(A + α + β)
+
+julia> toexpr(ans, pretty=true)
+:(let α = f(A), β = g(α)
+      A + α + β
+  end)
+```
+"""
 function subexprs(expr::Expr)
 	l = SubexprList()
 	subexprs!(l, expr)
@@ -88,9 +128,35 @@ function substitute(expr::Expr, subs)
 	Expr(expr.head, args...)
 end
 
-function squash(l::SubexprList)
+
+"""
+	squash(::SubexprList, maxcount=1)::SubexprList
+
+Eliminate subexpressions which are referenced at most `maxcount` times by substituting their definitions in subsequent expressions.
+
+# Example
+
+```julia-repl
+julia> subexprs(:(A + f(A) + g(f(A))^2))
+MicroCAS.SubexprList{Any} with 4 entries:
+  α => :(f(A))
+  β => :(g(α))
+  γ => :(β ^ 2)
+  δ => :(A + α + γ)
+
+julia> squash(ans, 1)
+MicroCAS.SubexprList{Any} with 2 entries:
+  α => :(f(A))
+  β => :(A + α + g(α) ^ 2)
+
+julia> squash(ans, 2)
+MicroCAS.SubexprList{Any} with 1 entry:
+  α => :(A + f(A) + g(f(A)) ^ 2)
+```
+"""
+function squash(l::SubexprList, maxcount=1)
 	counts = countrefs(l)
-	tosquash = keys(filter(isone∘last, counts))
+	tosquash = keys(filter(<=(maxcount)∘last, counts))
 	subs = filter(in(tosquash)∘first, l)
 	out = SubexprList()
 	for (ref, v) in l

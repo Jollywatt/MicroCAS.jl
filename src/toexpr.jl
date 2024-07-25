@@ -8,6 +8,21 @@ toexpr(x::Union{Symbol,Expr}) = x
 
 toexpr(x::T) where T<:Node = :($T($((:($(toexpr(k)) => $v) for (k, v) in x)...)))
 
+"""
+	toexpr(::Prod)
+	toexpr(::Sum)
+
+Render a product or sum `Node` as an expression.
+
+# Example
+```julia-repl
+julia> toexpr(Sum(Prod(:x => 2) => 7, Prod() => 42))
+:(42 + 7 * x ^ 2)
+```
+"""
+toexpr
+
+
 function toexpr(x::Prod)
 	factors = map(sortbykeys(x)) do (k, v)
 		k = toexpr(k)
@@ -46,8 +61,22 @@ function toexpr(a::AbstractVector)
 	Expr(:vect, toexpr.(a)...)
 end
 
-function toexpr(l::SubexprList)
-	names = Dict(k => letter(i) for (i, k) in enumerate(keys(l.defs)))
+
+"""
+	toexpr(::SubexprList; pretty=false)
+
+Render a subexpression list as a `let ... end` expression.
+
+# Example
+```julia-repl
+julia> toexpr(subexprs(:(x^2 + f(x^2))), pretty=true)
+:(let α = x ^ 2, β = f(α)
+      α + β
+  end)
+```
+"""
+function toexpr(l::SubexprList; pretty=false)
+	names = Dict(k => pretty ? letter(i) : gensym() for (i, k) in enumerate(keys(l.defs)))
 	c = collect(l)
 	defs = [names[k] => substitute(v, names) for (k, v) in l]
 	Expr(:let, [:($k = $v) for (k, v) in defs[1:end-1]], last(defs[end]))

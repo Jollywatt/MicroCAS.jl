@@ -5,7 +5,7 @@ using OrderedCollections: OrderedDict
 export vars
 export Node, Prod, Sum
 export factor
-export subexprs
+export subexprs, squash, toexpr
 
 include("algebra.jl")
 include("subexprs.jl")

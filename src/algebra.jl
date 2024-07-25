@@ -1,10 +1,16 @@
 import Base: ==, +, -, *, /, \, ^, inv, hash
 
+"""
+	Node{K,V}
+
+Represents a set of `K` objects with associated nonzero values `V`.
+Used to define the [`Prod`](@ref) and [`Sum`](@ref) types.
+"""
 struct Node{K,V}
 	data::Dict{K,V}
 	Node{K,V}(d::Dict) where {K,V} = new{K,V}(filter(!iszero∘last, d))
+	Node{K,V}() where {K,V} = new{K,V}(Dict{K,V}())
 end
-Node{K,V}() where {K,V} = Node{K,V}(Dict{K,V}())
 Node(d::Dict{K,V}) where {K,V} = Node{K,V}(d)
 (::Type{T})(a::Union{Base.Generator,Pair}...) where {T<:Node} = T(Dict(a...))
 
@@ -17,8 +23,21 @@ Base.setindex!(x::Node, v, k) = iszero(v) ? delete!(x.data, k) : setindex!(x.dat
 Base.length(x::Node) = length(x.data)
 Base.iterate(x::Node, args...) = iterate(x.data, args...)
 
+"""
+	Prod <: Node
+
+Represents a symbolic product of factors with integer exponents.
+"""
 const Prod = Node{Union{Symbol,Expr,<:Node},Int}
+
+"""
+	Sum{T} <: Node
+
+Represents a symbolic sum of terms.
+Each term is a `Prod` with a coefficient of type `T`.
+"""
 const Sum{T} = Node{Prod,T}
+Sum(d::Dict{K,V}) where {K,V} = Sum{V}(d)
 
 Base.isone(x::Prod) = isempty(x.data)
 Base.iszero(x::Sum) = isempty(x.data)
@@ -26,12 +45,11 @@ Base.one(::Union{Prod,Type{Prod}}) = Prod()
 Base.zero(::Union{Sum{T},Type{Sum{T}}}) where T = Sum{T}()
 Base.one(::Union{Sum{T},Type{Sum{T}}}) where T = Sum{T}(Prod() => one(T))
 
+var(a) = Sum(Prod(Symbol(a) => 1) => 1)
 function vars(n::Integer, sym::Symbol=:x)
-	[Sum(Prod(Symbol("$sym$i") => 1) => 1.0) for i in 1:n]
+	[var("$sym$i") for i in 1:n]
 end
 
-Sum(d::Dict{K,V}) where {K,V} = Sum{V}(d)
-Sum{T}(e::Expr) where T = Sum(Prod(e => 1) => one(T))
 
 #= Multiplication of products =#
 
@@ -91,6 +109,12 @@ end
 (x::Sum \ a::Number) = a*inv(x)
 
 
+"""
+	factor(x::Sum)
+
+Naively collect factors that are common to all terms in `x`.
+For example, `x*y + x*z` becomes `x*(y + z)`, but `x^2 + 2x + 1` is left as is.
+"""
 function factor(x::Sum{T}) where T
 	length(x) == 1 && return x
 	isempty(x) && return x
