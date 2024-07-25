@@ -68,7 +68,7 @@ end
 Render a subexpression list as a `let ... end` expression.
 
 # Example
-```julia-repl
+```jldoctest
 julia> toexpr(subexprs(:(x^2 + f(x^2))), pretty=true)
 :(let α = x ^ 2, β = f(α)
       α + β

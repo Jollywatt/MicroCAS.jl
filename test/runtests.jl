@@ -1,7 +1,17 @@
 #= Run this script interactively: `julia -i runtests.jl`
 ... or with arguments `julia runtests.jl [testfiles...]` =#
 
-using Test, Revise, MicroCAS
+using Test, Revise, Documenter
+using MicroCAS
+
+# apply setup code to all doctests in doc strings
+DocMeta.setdocmeta!(MicroCAS, :DocTestSetup, :(using Revise, MicroCAS), recursive=true)
+
+function doctest(; fix=false)
+	Revise.revise()
+	Documenter.doctest(MicroCAS, manual=false; fix)
+	nothing
+end
 
 alltests() = setdiff(filter(endswith(".jl"), readdir(dirname(@__FILE__))), [basename(@__FILE__)])
 

@@ -12,7 +12,7 @@ Subexpressions are referenced with a `SubexprPointer`, which are the keys of the
 See also [`subexprs`](@ref).
 
 # Examples
-```julia-repl
+```jldoctest
 julia> subexprs(:(A + f(A) + g(f(A))))
 MicroCAS.SubexprList{Any} with 3 entries:
   α => :(f(A))
@@ -78,7 +78,7 @@ Flatten an expression tree into a list of atomic expressions so that common sube
 See also [`squash`](@ref).
 
 # Example
-```julia-repl
+```jldoctest
 julia> subexprs(:(A + f(A) + g(f(A))))
 MicroCAS.SubexprList{Any} with 3 entries:
   α => :(f(A))
@@ -136,7 +136,7 @@ Eliminate subexpressions which are referenced at most `maxcount` times by substi
 
 # Example
 
-```julia-repl
+```jldoctest
 julia> subexprs(:(A + f(A) + g(f(A))^2))
 MicroCAS.SubexprList{Any} with 4 entries:
   α => :(f(A))
