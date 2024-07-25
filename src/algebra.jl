@@ -90,34 +90,3 @@ end
 
 Base.show(io::IO, ::MIME"text/plain", x::Node) = print(io, summary(x), ":\n ", toexpr(x))
 Base.show(io::IO, x::Node) = print(io, toexpr(x))
-
-toexpr(x::Union{Symbol,Expr}) = x
-
-function toexpr(x::Prod)
-	factors = map(collect(x.data)) do (k, v)
-		k = toexpr(k)
-		isone(v) ? k : :($k^$v)
-	end
-	if length(factors) == 0
-		1
-	elseif length(factors) == 1
-		first(factors)
-	else
-		Expr(:call, :*, factors...)
-	end
-end
-
-function toexpr(x::Sum{T}) where {T}
-	factors = map(collect(x.data)) do (k, v)
-		isone(k) && return v
-		k = toexpr(k)
-		isone(v) ? k : :($v*$k)
-	end
-	if length(factors) == 0
-		zero(T)
-	elseif length(factors) == 1
-		first(factors)
-	else
-		Expr(:call, :+, factors...)
-	end
-end
