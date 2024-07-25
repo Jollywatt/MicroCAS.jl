@@ -1,0 +1,4 @@
+name = "MicroCAS"
+uuid = "3f577886-1fd7-4830-bec2-de98695bdad7"
+authors = ["jollywatt <jo.alex.w@gmail.com>"]
+version = "0.1.0"
