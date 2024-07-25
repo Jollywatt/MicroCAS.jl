@@ -3,8 +3,8 @@ module MicroCAS
 using OrderedCollections: OrderedDict
 
 export vars
-export Node
 export Node, Prod, Sum
+export factor
 export subexprs
 
 include("algebra.jl")

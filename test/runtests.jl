@@ -1,17 +1,17 @@
 #= Run this script interactively: `julia -i runtests.jl`
 ... or with arguments `julia runtests.jl [testfiles...]` =#
 
-cd(joinpath(".", dirname(@__FILE__)))
-
 using Test, Revise, MicroCAS
 
-alltests() = setdiff(filter(endswith(".jl"), readdir()), [basename(@__FILE__)])
+alltests() = setdiff(filter(endswith(".jl"), readdir(dirname(@__FILE__))), [basename(@__FILE__)])
 
 test(files::String...) = test(files)
 function test(files=alltests())
 	isempty(files) && @info "No tests"
-	@testset "$file" for file in files
-		include(file)
+	cd(joinpath(".", dirname(@__FILE__))) do
+		@testset "$file" for file in files
+			include(file)
+		end
 	end
 	nothing
 end
