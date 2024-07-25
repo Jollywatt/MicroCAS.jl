@@ -12,7 +12,8 @@ Node(d::Dict{K,V}) where {K,V} = Node{K,V}(d)
 hash(x::Node, h::UInt) = hash(x.data, h)
 
 Base.getindex(x::Node{K,V}, k) where {K,V} = get(x.data, k, zero(V))
-Base.setindex!(x::Node, args...) = setindex!(x.data, args...)
+Base.setindex!(x::Node, v, k) = iszero(v) ? delete!(x.data, k) : setindex!(x.data, v, k)
+
 Base.length(x::Node) = length(x.data)
 Base.iterate(x::Node, args...) = iterate(x.data, args...)
 
@@ -27,7 +28,7 @@ function vars(n::Integer, sym::Symbol=:x)
 end
 
 Sum(d::Dict{K,V}) where {K,V} = Sum{V}(d)
-
+Sum{T}(e::Expr) where T = Sum(Term(e => 1) => one(T))
 
 #= Multiplication of terms =#
 
@@ -62,21 +63,21 @@ end
 
 (x::Sum * y::Sum) = distribute(x, y)
 
-function (x::Sum ^ p::Integer)
+function (x::Sum{T} ^ p::Integer) where T
 	if p < 0
 		inv(x)^abs(p)
 	elseif length(x) == 1
 		Sum(k^p => v^p for (k, v) in x)
 	else
-		error("cannot exponentiate $x by $p")
+		Sum{T}(Term(toexpr(x) => p) => one(T))
 	end
 end
 
-function inv(x::Sum)
+function inv(x::Sum{T}) where T
 	if length(x) == 1
 		Sum(inv(k) => inv(v) for (k, v) in x)
 	else
-		error("cannot invert $x")
+		Sum{T}(Term(toexpr(x) => -1) => one(T))
 	end
 end
 

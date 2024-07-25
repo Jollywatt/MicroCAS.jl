@@ -1,12 +1,22 @@
-
+macro ident(expr)
+	@assert expr isa Expr
+	@assert expr.head == :call
+	op, a, b = expr.args
+	@assert op == :(==)
+	quote
+		@test $a == $b
+		@test isequal($a, $b)
+		@test hash($a) == hash($b)
+	end |> esc
+end
 
 @testset "Term" begin
 
 	x, y, z = Term.([:x, :y, :z] .=> 1)
 
-	@test x*y == y*x
-	@test x*x == x^2
-	@test inv(x) == x/x^2
+	@ident x*y == y*x
+	@ident x*x == x^2
+	@ident inv(x) == x/x^2
 
 end
 
@@ -14,26 +24,16 @@ end
 
 	x, y, z = Sum.(Term.([:x, :y, :z] .=> 1) .=> 1.0)
 
-	@test x + y == y + x
-	@test x + x == 2x
-	@test -x == x - 2x
+	@ident x + y == y + x
+	@ident x + x == 2x
+	@ident -x == x - 2x
 
-	@test x*y == y*x
-	@test (x + y)*z == x*z + y*z
+	@ident x - x == y - y
 
-end
+	@ident x*y == y*x
+	@ident (x + y)*z == x*z + y*z
 
-@testset "hashing and equality" begin
-	x, y, z = Sum.(Term.([:x, :y, :z] .=> 1) .=> 1.0)
+	@ident (x + y)*(x - y) == x^2 - y^2
+	@ident (x + y)^6/(y + x)^8 == inv(x + z + y - z)^2
 
-	exprs = [
-		Node(:a => 1, :b => 2) => Node(:b => 2, :a => 1)
-		Term(:x => 1, :y => 2) => Term(:y => 2, :x => 1)
-	]
-
-	for (a, b) in exprs, _ in 1:10
-		@test a == b
-		@test isequal(a, b)
-		@test hash(a) == hash(b)
-	end
 end
