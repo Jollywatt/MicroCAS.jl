@@ -28,7 +28,7 @@ Base.iterate(x::Node, args...) = iterate(x.data, args...)
 
 Represents a symbolic product of factors with integer exponents.
 """
-const Prod = Node{Union{Symbol,Expr,<:Node},Int}
+const Prod = Node{Union{Symbol,<:Node},Int}
 
 """
 	Sum{T} <: Node
