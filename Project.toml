@@ -2,3 +2,6 @@ name = "MicroCAS"
 uuid = "3f577886-1fd7-4830-bec2-de98695bdad7"
 authors = ["jollywatt <jo.alex.w@gmail.com>"]
 version = "0.1.0"
+
+[deps]
+OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
