@@ -17,26 +17,26 @@ Base.setindex!(x::Node, v, k) = iszero(v) ? delete!(x.data, k) : setindex!(x.dat
 Base.length(x::Node) = length(x.data)
 Base.iterate(x::Node, args...) = iterate(x.data, args...)
 
-const Term = Node{Union{Symbol,Expr,<:Node},Int}
-const Sum{T} = Node{Term,T}
+const Prod = Node{Union{Symbol,Expr,<:Node},Int}
+const Sum{T} = Node{Prod,T}
 
-Base.isone(x::Term) = isempty(x.data)
+Base.isone(x::Prod) = isempty(x.data)
 Base.iszero(x::Sum) = isempty(x.data)
 
 function vars(n::Integer, sym::Symbol=:x)
-	[Sum(Term(Symbol("$sym$i") => 1) => 1.0) for i in 1:n]
+	[Sum(Prod(Symbol("$sym$i") => 1) => 1.0) for i in 1:n]
 end
 
 Sum(d::Dict{K,V}) where {K,V} = Sum{V}(d)
-Sum{T}(e::Expr) where T = Sum(Term(e => 1) => one(T))
+Sum{T}(e::Expr) where T = Sum(Prod(e => 1) => one(T))
 
-#= Multiplication of terms =#
+#= Multiplication of products =#
 
-(x::Term * y::Term) = Term(mergewith(+, x.data, y.data))
-inv(x::Term) = Term(k => -v for (k, v) in x)
-(x::Term / y::Term) = x*inv(y)
-(x::Term \ y::Term) = y*inv(x)
-(x::Term ^ p::Integer) = Term(k => p*v for (k, v) in x)
+(x::Prod * y::Prod) = Prod(mergewith(+, x.data, y.data))
+inv(x::Prod) = Prod(k => -v for (k, v) in x)
+(x::Prod / y::Prod) = x*inv(y)
+(x::Prod \ y::Prod) = y*inv(x)
+(x::Prod ^ p::Integer) = Prod(k => p*v for (k, v) in x)
 
 #= Addition and multiplication of sums =#
 
@@ -49,8 +49,8 @@ inv(x::Term) = Term(k => -v for (k, v) in x)
 (a::Number \ x::Sum) = Sum(k => a\v for (k, v) in x)
 
 for op in [:+, :-]
-	@eval $op(x::Sum, a::Number) = $op(x, Sum(Term() => a))
-	@eval $op(a::Number, x::Sum) = $op(x, Sum(Term() => a))
+	@eval $op(x::Sum, a::Number) = $op(x, Sum(Prod() => a))
+	@eval $op(a::Number, x::Sum) = $op(x, Sum(Prod() => a))
 end
 
 
@@ -70,7 +70,7 @@ function (x::Sum{T} ^ p::Integer) where T
 	elseif length(x) == 1
 		Sum(k^p => v^p for (k, v) in x)
 	else
-		Sum{T}(Term((x) => p) => one(T))
+		Sum{T}(Prod((x) => p) => one(T))
 	end
 end
 
@@ -78,7 +78,7 @@ function inv(x::Sum{T}) where T
 	if length(x) == 1
 		Sum(inv(k) => inv(v) for (k, v) in x)
 	else
-		Sum{T}(Term((x) => -1) => one(T))
+		Sum{T}(Prod((x) => -1) => one(T))
 	end
 end
 
@@ -93,7 +93,7 @@ Base.show(io::IO, x::Node) = print(io, toexpr(x))
 
 toexpr(x::Union{Symbol,Expr}) = x
 
-function toexpr(x::Term)
+function toexpr(x::Prod)
 	factors = map(collect(x.data)) do (k, v)
 		k = toexpr(k)
 		isone(v) ? k : :($k^$v)

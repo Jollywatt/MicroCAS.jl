@@ -2,7 +2,7 @@ module MicroCAS
 
 export vars
 export Node
-export Node, Term, Sum
+export Node, Prod, Sum
 
 include("algebra.jl")
 
