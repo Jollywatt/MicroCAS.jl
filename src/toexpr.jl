@@ -6,6 +6,8 @@ sortbykeys(a) = sort(collect(a), by=first, lt=(<ₜ))
 
 toexpr(x::Union{Symbol,Expr}) = x
 
+toexpr(x::T) where T<:Node = :($T($((:($(toexpr(k)) => $v) for (k, v) in x)...)))
+
 function toexpr(x::Prod)
 	factors = map(sortbykeys(x)) do (k, v)
 		k = toexpr(k)
@@ -24,7 +26,12 @@ function toexpr(x::Sum{T}) where {T}
 	factors = map(sortbykeys(x)) do (k, v)
 		isone(k) && return v
 		k = toexpr(k)
-		isone(v) ? k : :($v*$k)
+		isone(v) && return k
+		if k isa Expr && k.head == :call && first(k.args) == :*
+			Expr(:call, :*, v, k.args[2:end]...)
+		else
+			:($v*$k)
+		end
 	end
 	if length(factors) == 0
 		zero(T)
@@ -33,4 +40,15 @@ function toexpr(x::Sum{T}) where {T}
 	else
 		Expr(:call, :+, factors...)
 	end
+end
+
+function toexpr(a::AbstractVector)
+	Expr(:vect, toexpr.(a)...)
+end
+
+function toexpr(l::SubexprList)
+	names = Dict(k => letter(i) for (i, k) in enumerate(keys(l.defs)))
+	c = collect(l)
+	defs = [names[k] => substitute(v, names) for (k, v) in l]
+	Expr(:let, [:($k = $v) for (k, v) in defs[1:end-1]], last(defs[end]))
 end
