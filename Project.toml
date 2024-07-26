@@ -5,3 +5,9 @@ version = "0.1.0"
 
 [deps]
 OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
+
+[weakdeps]
+GeometricAlgebra = "11bbe1ca-eae6-48c2-942c-9f17e43de0f0"
+
+[extensions]
+GeometricAlgebraExt = "GeometricAlgebra"

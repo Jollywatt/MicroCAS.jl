@@ -11,4 +11,4 @@ include("algebra.jl")
 include("subexprs.jl")
 include("toexpr.jl")
 
-end # module MicroCAS
+end # module
